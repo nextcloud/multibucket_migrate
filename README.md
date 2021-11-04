@@ -2,6 +2,8 @@
 
 Allow moving users between buckets in a multibucket setup.
 
+⚠ This app has only been minimally tested, backups are strongly recommended ⚠
+
 ## Usage
 
 Move all objects owned by a user to a different bucket.
