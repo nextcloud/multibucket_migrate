@@ -19,5 +19,6 @@
 
 	<commands>
 		<command>OCA\MultiBucketMigrate\Command\MoveUser</command>
+		<command>OCA\MultiBucketMigrate\Command\ListObjects</command>
 	</commands>
 </info>

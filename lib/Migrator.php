@@ -60,6 +60,26 @@ class Migrator {
 		return $this->config->getUserValue($user->getUID(), "homeobjectstore", "bucket");
 	}
 
+	/**
+	 * @param IUser $user
+	 * @return string[]
+	 */
+	public function listObjects(IUser $user): array {
+		$storageFactory = new StorageFactory();
+		$homeMount = $this->mountProvider->getHomeMountForUser($user, $storageFactory);
+		if ($homeMount === null) {
+			throw new \Exception("Nextcloud is not using an object store as primary storage");
+		}
+		/** @var ObjectStoreStorage $homeStorage */
+		$homeStorage = $homeMount->getStorage();
+		$homeCache = $homeMount->getStorage()->getCache();
+		$fileIds = $this->getFileIds($homeCache->getNumericStorageId());
+
+		return array_map(function (int $fileId) use ($homeStorage) {
+			return $homeStorage->getURN($fileId);
+		}, $fileIds);
+	}
+
 	public function moveUser(IUser $user, string $targetBucket, callable $progress = null) {
 		$currentBucket = $this->getCurrentBucket($user);
 		if ($currentBucket === $targetBucket) {
