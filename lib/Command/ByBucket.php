@@ -23,7 +23,6 @@ declare(strict_types=1);
 
 namespace OCA\MultiBucketMigrate\Command;
 
-
 use OC\Core\Command\Base;
 use OCA\MultiBucketMigrate\Migrator;
 use OCP\IUserManager;

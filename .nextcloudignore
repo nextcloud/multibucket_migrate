@@ -11,3 +11,4 @@ screenshots
 composer.*
 .php_cs.dist
 psalm.xml
+stubs

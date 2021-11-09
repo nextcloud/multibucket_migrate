@@ -23,7 +23,7 @@ declare(strict_types=1);
 
 namespace OCA\MultiBucketMigrate;
 
-use OC\Files\FileInfo;
+use OCP\Files\FileInfo;
 use OC\Files\Mount\ObjectHomeMountProvider;
 use OC\Files\ObjectStore\ObjectStoreStorage;
 use OC\Files\ObjectStore\S3;

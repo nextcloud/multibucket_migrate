@@ -24,17 +24,12 @@ declare(strict_types=1);
 namespace OCA\MultiBucketMigrate\Command;
 
 use OC\Core\Command\Base;
-use OC\Files\Storage\LocalRootStorage;
 use OCA\MultiBucketMigrate\Migrator;
-use OCA\RootCacheClean\Cleaner;
-use OCP\Files\IRootFolder;
 use OCP\IUserManager;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 class MoveUser extends Base {
 	/** @var Migrator */
