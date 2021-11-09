@@ -79,8 +79,8 @@ class Migrator {
 		$homeCache = $homeMount->getStorage()->getCache();
 		$fileIds = $this->getFileIds($homeCache->getNumericStorageId());
 
-		return array_map(function (int $fileId) use ($homeStorage) {
-			return $homeStorage->getURN($fileId);
+		return array_map(function (int $fileId) {
+			return 'urn:oid:' . $fileId;
 		}, $fileIds);
 	}
 
@@ -117,7 +117,7 @@ class Migrator {
 			if ($progress) {
 				$progress('copy', $fileId);
 			}
-			$key = $homeStorage->getURN($fileId);
+			$key = 'urn:oid:' . $fileId;
 			$s3->copy($currentBucket, $key, $targetBucket, $key);
 		}
 
@@ -129,7 +129,7 @@ class Migrator {
 			if ($progress) {
 				$progress('delete', $fileId);
 			}
-			$key = $homeStorage->getURN($fileId);
+			$key = 'urn:oid:' . $fileId;
 			$s3->deleteObject([
 				'Bucket' => $currentBucket,
 				'Key' => $key,
