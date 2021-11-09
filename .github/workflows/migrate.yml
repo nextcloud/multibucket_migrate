@@ -14,11 +14,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['7.4']
         databases: ['sqlite']
-        server-versions: ['stable21']
+        server-versions: ['stable21', 'stable20', 'stable19', 'stable18', 'stable17', 'stable16', 'stable15']
+        include:
+          - server-versions: stable21
+            php-versions: 7.4
+          - server-versions: stable20
+            php-versions: 7.4
+          - server-versions: stable19
+            php-versions: 7.4
+          - server-versions: stable18
+            php-versions: 7.4
+          - server-versions: stable17
+            php-versions: 7.3
+          - server-versions: stable16
+            php-versions: 7.3
+          - server-versions: stable15
+            php-versions: 7.3
 
-    name: php-${{ matrix.server-versions }}
+    name: php-${{ matrix.server-versions }}-${{ matrix.php-versions }}
 
     services:
       s3:
@@ -55,7 +69,7 @@ jobs:
           mkdir data
           cp apps/${{ env.APP_NAME }}/ci-config.php config/config.php
           ./occ maintenance:install --verbose --database=${{ matrix.databases }} --database-name=nextcloud --database-host=127.0.0.1 --database-port=$DB_PORT --database-user=root --database-pass=rootpassword --admin-user admin --admin-pass password
-          ./occ app:enable --force ${{ env.APP_NAME }}
+          ./occ app:enable ${{ env.APP_NAME }}
           php -S localhost:8080 &
 
       - name: Setup before situation
