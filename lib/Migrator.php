@@ -60,6 +60,10 @@ class Migrator {
 		return $this->config->getUserValue($user->getUID(), "homeobjectstore", "bucket");
 	}
 
+	public function getUsersForBucket(string $bucket): array {
+		return $this->config->getUsersForUserValue("homeobjectstore", "bucket", $bucket);
+	}
+
 	/**
 	 * @param IUser $user
 	 * @return string[]
