@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace OCA\MultiBucketMigrate;
 
+use Aws\S3\S3Client;
 use OCP\Files\FileInfo;
 use OC\Files\Mount\ObjectHomeMountProvider;
 use OC\Files\ObjectStore\ObjectStoreStorage;
@@ -30,6 +31,7 @@ use OC\Files\ObjectStore\S3;
 use OC\Files\Storage\StorageFactory;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\Files\IMimeTypeLoader;
+use OCP\Files\ObjectStore\IObjectStore;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IUser;
@@ -82,7 +84,7 @@ class Migrator {
 		}, $fileIds);
 	}
 
-	private function getObjectStorage(ObjectStoreStorage $storage) {
+	private function getObjectStorage(ObjectStoreStorage $storage): IObjectStore {
 		if (method_exists($storage, 'getObjectStore')) {
 			return $storage->getObjectStore();
 		} else {
@@ -91,6 +93,19 @@ class Migrator {
 			$property = $class->getProperty('objectStore');
 			$property->setAccessible(true);
 			return $property->getValue($storage);
+		}
+	}
+
+	private function getS3Connection(S3 $s3): S3Client {
+		/** @psalm-suppress RedundantCondition */
+		if (is_callable([$s3, 'getConnection'])) {
+			return $s3->getConnection();
+		} else {
+			// workaround for pre nc17
+			$class = new \ReflectionClass($s3);
+			$method = $class->getMethod('getConnection');
+			$method->setAccessible(true);
+			return $method->invoke($s3);
 		}
 	}
 
@@ -109,7 +124,7 @@ class Migrator {
 		if (!$objectStore instanceof S3) {
 			throw new \Exception("Migrating is only supported for s3 object storage");
 		}
-		$s3 = $objectStore->getConnection();
+		$s3 = $this->getS3Connection($objectStore);
 
 		if (!$s3->doesBucketExist($targetBucket)) {
 			if ($progress) {
