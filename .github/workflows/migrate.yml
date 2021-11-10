@@ -15,8 +15,10 @@ jobs:
       fail-fast: false
       matrix:
         databases: ['sqlite']
-        server-versions: ['stable21', 'stable20', 'stable19', 'stable18', 'stable17', 'stable16', 'stable15']
+        server-versions: ['stable22', 'stable21', 'stable20', 'stable19', 'stable18', 'stable17', 'stable16', 'stable15']
         include:
+          - server-versions: stable22
+            php-versions: 7.4
           - server-versions: stable21
             php-versions: 7.4
           - server-versions: stable20
