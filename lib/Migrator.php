@@ -74,14 +74,24 @@ class Migrator {
 		if ($homeMount === null) {
 			throw new \Exception("Nextcloud is not using an object store as primary storage");
 		}
-		/** @var ObjectStoreStorage $homeStorage */
-		$homeStorage = $homeMount->getStorage();
 		$homeCache = $homeMount->getStorage()->getCache();
 		$fileIds = $this->getFileIds($homeCache->getNumericStorageId());
 
 		return array_map(function (int $fileId) {
 			return 'urn:oid:' . $fileId;
 		}, $fileIds);
+	}
+
+	private function getObjectStorage(ObjectStoreStorage $storage) {
+		if (method_exists($storage, 'getObjectStore')) {
+			return $storage->getObjectStore();
+		} else {
+			// workaround for pre nc17
+			$class = new \ReflectionClass($storage);
+			$property = $class->getProperty('objectStore');
+			$property->setAccessible(true);
+			return $property->getValue($storage);
+		}
 	}
 
 	public function moveUser(IUser $user, string $targetBucket, callable $progress = null) {
@@ -95,7 +105,7 @@ class Migrator {
 		/** @var ObjectStoreStorage $homeStorage */
 		$homeStorage = $homeMount->getStorage();
 		$homeCache = $homeMount->getStorage()->getCache();
-		$objectStore = $homeStorage->getObjectStore();
+		$objectStore = $this->getObjectStorage($homeStorage);
 		if (!$objectStore instanceof S3) {
 			throw new \Exception("Migrating is only supported for s3 object storage");
 		}

@@ -78,7 +78,7 @@ jobs:
           curl -X PUT -u test:test http://localhost:8080/remote.php/dav/files/test/foo.txt --data 'foobar'
       - name: Migrate
         run: |
-          FILE=$(curl -u test:test http://localhost:8080/remote.php/dav/files/test/foo.txt)
+          FILE=$(curl -s -u test:test http://localhost:8080/remote.php/dav/files/test/foo.txt)
           [[ $FILE == "foobar" ]]
 
           ./occ multibucket_migrate:list test
@@ -94,5 +94,5 @@ jobs:
           BUCKET=$(./occ user:setting test homeobjectstore bucket | tr -d '[:space:]')
           [[ $BUCKET == "target-bucket" ]]
 
-          FILE=$(curl -u test:test http://localhost:8080/remote.php/dav/files/test/foo.txt)
+          FILE=$(curl -s -u test:test http://localhost:8080/remote.php/dav/files/test/foo.txt)
           [[ $FILE == "foobar" ]]
