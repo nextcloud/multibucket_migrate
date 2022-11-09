@@ -35,3 +35,11 @@ You can get all users who are using a specific bucket by using
 ```bash
 occ multibucket_migrate:by-bucket <bucket>
 ```
+
+## Listing all object owned by a user
+
+You can get a list of all object belonging to a users home storage by using
+
+```bash
+occ multibucket_migrate:list <user_id>
+```
