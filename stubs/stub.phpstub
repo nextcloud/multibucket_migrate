@@ -361,8 +361,9 @@ namespace OC\Files\Mount {
 namespace OCA\Files_Sharing {
 
 	use OCP\Share\IShare;
+	use OC\Files\Storage\AbstractStorage;
 
-	class SharedStorage {
+	class SharedStorage extends AbstractStorage {
 		/**
 		 * @return \OCP\Share\IShare
 		 */
