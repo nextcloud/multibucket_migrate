@@ -73,13 +73,14 @@ class MoveUser extends Base {
 		}
 
 		$count = 0;
+		$skipped = [];
 		$state = '';
 		$progressBar = null;
 
 		try {
 			$output->writeln("<info>Disabling user</info>");
 			$user->setEnabled(false);
-			$this->migrator->moveUser($user, $targetBucket, function (string $step, int $arg) use (&$state, &$count, &$progressBar, $output) {
+			$this->migrator->moveUser($user, $targetBucket, function (string $step, int $arg, string $message = null) use (&$state, &$count, &$skipped, &$progressBar, $output) {
 				if ($step === 'create') {
 					$output->writeln("<info>Creating target bucket</info>");
 				} elseif ($step === 'count') {
@@ -92,6 +93,9 @@ class MoveUser extends Base {
 						$progressBar->start();
 					}
 					$progressBar->advance();
+				} elseif ($step === 'skipped') {
+					$skipped[] = $arg;
+					$output->writeln("<info>$message</info>");
 				} elseif ($step === 'config') {
 					$progressBar->finish();
 					$output->writeln("<info>Setting user to use new bucket</info>");
@@ -104,6 +108,9 @@ class MoveUser extends Base {
 					}
 				} elseif ($step === 'done') {
 					$progressBar->finish();
+					if (count($skipped) > 0) {
+						$output->writeln("<comment>Skipped $skipped files due to errors. Please check the logs for details.</comment>");
+					}
 				}
 			});
 			$output->writeln("<info>Re-enabling user</info>");

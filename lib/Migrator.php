@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace OCA\MultiBucketMigrate;
 
+use Aws\S3\Exception\S3Exception;
 use Aws\S3\S3Client;
 use OCP\Files\FileInfo;
 use OC\Files\Mount\ObjectHomeMountProvider;
@@ -34,6 +35,7 @@ use OCP\Files\IMimeTypeLoader;
 use OCP\Files\ObjectStore\IObjectStore;
 use OCP\IConfig;
 use OCP\IDBConnection;
+use OCP\ILogger;
 use OCP\IUser;
 
 class Migrator {
@@ -45,12 +47,15 @@ class Migrator {
 	private $connection;
 	/** @var IMimeTypeLoader */
 	private $mimeTypeLoader;
+	/** @var ILogger */
+	private $logger;
 
-	public function __construct(IConfig $config, ObjectHomeMountProvider $mountProvider, IDBConnection $connection, IMimeTypeLoader $mimeTypeLoader) {
+	public function __construct(IConfig $config, ObjectHomeMountProvider $mountProvider, IDBConnection $connection, IMimeTypeLoader $mimeTypeLoader, ILogger $logger) {
 		$this->config = $config;
 		$this->mountProvider = $mountProvider;
 		$this->connection = $connection;
 		$this->mimeTypeLoader = $mimeTypeLoader;
+		$this->logger = $logger;
 	}
 
 	public function isMultiBucket(): bool {
@@ -143,7 +148,18 @@ class Migrator {
 				$progress('copy', $fileId);
 			}
 			$key = 'urn:oid:' . $fileId;
-			$s3->copy($currentBucket, $key, $targetBucket, $key);
+			try {
+				$s3->copy($currentBucket, $key, $targetBucket, $key);
+			} catch (S3Exception $e) {
+				if ($e->getStatusCode() === 404) {
+					$message = 'Skipped file with id ' . $fileId . ' due to S3 error: ' . $e->getMessage();
+					$this->logger->error($message, ['exception' => $e]);
+					$progress('skipped', $fileId, 'Skipped file with id ' . $fileId . ' due to S3 error: ' . $e->getMessage());
+				} else {
+					$this->logger->emergency($message, ['exception' => $e]);
+					throw $e;
+				}
+			}
 		}
 
 		$progress('config', 0);
