@@ -79,7 +79,11 @@ class MoveUser extends Base {
 		try {
 			$output->writeln("<info>Disabling user</info>");
 			$user->setEnabled(false);
-			$this->migrator->moveUser($user, $targetBucket, function (string $step, int $arg) use (&$state, &$count, &$progressBar, $output) {
+			$this->migrator->moveUser($user, $targetBucket, function (string $step, $arg) use (&$state, &$count, &$progressBar, $output) {
+				if ($step === 'warn') {
+					$output->writeln("\n<error>$arg</error>\n");
+				}
+
 				if ($step === 'create') {
 					$output->writeln("<info>Creating target bucket</info>");
 				} elseif ($step === 'count') {

@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace OCA\MultiBucketMigrate;
 
+use Aws\S3\Exception\S3Exception;
 use Aws\S3\S3Client;
 use OCP\Files\FileInfo;
 use OC\Files\Mount\ObjectHomeMountProvider;
@@ -35,6 +36,7 @@ use OCP\Files\ObjectStore\IObjectStore;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IUser;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class Migrator {
 	/** @var IConfig */
@@ -143,7 +145,15 @@ class Migrator {
 				$progress('copy', $fileId);
 			}
 			$key = 'urn:oid:' . $fileId;
-			$s3->copy($currentBucket, $key, $targetBucket, $key);
+			try {
+				$s3->copy($currentBucket, $key, $targetBucket, $key);
+			} catch (S3Exception $e) {
+				if ($e->getStatusCode() === 404) {
+					$progress('warn', "Object with key $key not found in source bucket, skipping");
+				} else {
+					throw $e;
+				}
+			}
 		}
 
 		$progress('config', 0);
