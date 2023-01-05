@@ -111,7 +111,7 @@ class Migrator {
 		}
 	}
 
-	public function moveUser(IUser $user, string $targetBucket, callable $progress = null) {
+	public function moveUser(IUser $user, string $targetBucket, callable $progress) {
 		$currentBucket = $this->getCurrentBucket($user);
 		if ($currentBucket === $targetBucket) {
 			throw new \Exception("User " . $user->getUID() . " already used bucket " . $targetBucket);
@@ -129,21 +129,15 @@ class Migrator {
 		$s3 = $this->getS3Connection($objectStore);
 
 		if (!$s3->doesBucketExist($targetBucket)) {
-			if ($progress) {
-				$progress('create', 0);
-			}
+			$progress('create', 0);
 			$s3->createBucket(['Bucket' => $targetBucket]);
 		}
 
 		$fileIds = $this->getFileIds($homeCache->getNumericStorageId());
-		if ($progress) {
-			$progress('count', count($fileIds));
-		}
+		$progress('count', count($fileIds));
 
 		foreach ($fileIds as $fileId) {
-			if ($progress) {
-				$progress('copy', $fileId);
-			}
+			$progress('copy', $fileId);
 			$key = 'urn:oid:' . $fileId;
 			try {
 				$s3->copy($currentBucket, $key, $targetBucket, $key);
@@ -161,9 +155,7 @@ class Migrator {
 		$this->config->setUserValue($user->getUID(), "homeobjectstore", "bucket", $targetBucket);
 
 		foreach ($fileIds as $fileId) {
-			if ($progress) {
-				$progress('delete', $fileId);
-			}
+			$progress('delete', $fileId);
 			$key = 'urn:oid:' . $fileId;
 			$s3->deleteObject([
 				'Bucket' => $currentBucket,

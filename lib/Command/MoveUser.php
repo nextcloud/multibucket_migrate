@@ -74,6 +74,7 @@ class MoveUser extends Base {
 
 		$count = 0;
 		$state = '';
+		/** @var ProgressBar|null $progressBar */
 		$progressBar = null;
 
 		try {
@@ -97,20 +98,29 @@ class MoveUser extends Base {
 					}
 					$progressBar->advance();
 				} elseif ($step === 'config') {
-					$progressBar->finish();
-					$output->writeln("<info>Setting user to use new bucket</info>");
+					// if the user had no files to copy, the progress bar will never be setup
+					if ($progressBar) {
+						$progressBar->finish();
+						$progressBar = null;
+					}
+					$output->writeln("\n<info>Setting user to use new bucket</info>");
 					$state = 'config';
 				} elseif ($step === 'delete') {
 					if ($state !== 'delete') {
 						$output->writeln("<info>Deleting objects in old bucket</info>");
 						$state = 'delete';
 						$progressBar = new ProgressBar($output, $count);
+						$progressBar->start();
 					}
+					$progressBar->advance();
 				} elseif ($step === 'done') {
-					$progressBar->finish();
+					// if the user had no files to delete, the progress bar will never be setup
+					if ($progressBar) {
+						$progressBar->finish();
+					}
 				}
 			});
-			$output->writeln("<info>Re-enabling user</info>");
+			$output->writeln("\n<info>Re-enabling user</info>");
 			$user->setEnabled(true);
 		} catch (\Exception $e) {
 			$output->writeln("<error>Error while migrating, user has been left disabled</error>");
