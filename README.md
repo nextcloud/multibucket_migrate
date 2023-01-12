@@ -2,7 +2,7 @@
 
 Allow moving users between buckets in a multibucket setup.
 
-⚠ This app has only been minimally tested, backups are strongly recommended ⚠
+⚠ Because this app modifies filesystem internals, backups are strongly recommended ⚠
 
 ## Usage
 
