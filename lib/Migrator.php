@@ -38,7 +38,6 @@ use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IUser;
 use OCP\IUserManager;
-use Symfony\Component\Console\Output\OutputInterface;
 
 class Migrator {
 	/** @var IConfig */
