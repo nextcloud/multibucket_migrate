@@ -37,6 +37,7 @@ use OCP\Files\ObjectStore\IObjectStore;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IUser;
+use OCP\IUserManager;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Migrator {
@@ -48,12 +49,21 @@ class Migrator {
 	private $connection;
 	/** @var IMimeTypeLoader */
 	private $mimeTypeLoader;
+	/** @var IUserManager */
+	private $userManager;
 
-	public function __construct(IConfig $config, ObjectHomeMountProvider $mountProvider, IDBConnection $connection, IMimeTypeLoader $mimeTypeLoader) {
+	public function __construct(
+		IConfig $config,
+		ObjectHomeMountProvider $mountProvider,
+		IDBConnection $connection,
+		IMimeTypeLoader $mimeTypeLoader,
+		IUserManager $userManager
+	) {
 		$this->config = $config;
 		$this->mountProvider = $mountProvider;
 		$this->connection = $connection;
 		$this->mimeTypeLoader = $mimeTypeLoader;
+		$this->userManager = $userManager;
 	}
 
 	public function isMultiBucket(): bool {
@@ -66,7 +76,11 @@ class Migrator {
 	}
 
 	public function getUsersForBucket(string $bucket): array {
-		return $this->config->getUsersForUserValue("homeobjectstore", "bucket", $bucket);
+		$users = $this->config->getUsersForUserValue("homeobjectstore", "bucket", $bucket);
+		$normalizedUsers = array_map(function (string $user) {
+			return $this->userManager->get($user)->getUID();
+		}, $users);
+		return array_unique($normalizedUsers);
 	}
 
 	/**
@@ -177,7 +191,7 @@ class Migrator {
 		$fileChunks = array_chunk($fileIds, 500);
 		foreach ($fileChunks as $chunk) {
 			$progress('delete', count($chunk));
-			$objects = array_map(function($fileId) {
+			$objects = array_map(function ($fileId) {
 				return ['Key' => 'urn:oid:' . $fileId];
 			}, $chunk);
 			$s3->deleteObjects([
