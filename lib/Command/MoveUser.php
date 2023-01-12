@@ -29,6 +29,7 @@ use OCP\IUserManager;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class MoveUser extends Base {
@@ -49,7 +50,8 @@ class MoveUser extends Base {
 			->setName('multibucket_migrate:move_user')
 			->setDescription('Move a user to a different backup')
 			->addArgument("user_id", InputArgument::REQUIRED, "Id of the user to migrate")
-			->addArgument("target_bucket", InputArgument::REQUIRED, "Bucket to migrate the user to");
+			->addArgument("target_bucket", InputArgument::REQUIRED, "Bucket to migrate the user to")
+			->addOption("parallel", null, InputOption::VALUE_REQUIRED, "Number of S3 copy commands to run in parallel", 1);
 		parent::configure();
 	}
 
@@ -60,6 +62,7 @@ class MoveUser extends Base {
 		}
 
 		$userId = $input->getArgument("user_id");
+		$parallel = (int) $input->getOption("parallel");
 		$user = $this->userManager->get($userId);
 		if (!$user) {
 			$output->writeln("<error>Uknown user $userId</error>");
@@ -80,7 +83,13 @@ class MoveUser extends Base {
 		try {
 			$output->writeln("<info>Disabling user</info>");
 			$user->setEnabled(false);
-			$this->migrator->moveUser($user, $targetBucket, function (string $step, $arg) use (&$state, &$count, &$progressBar, $output) {
+			$this->migrator->moveUser($user, $targetBucket, $parallel, function (string $step, $arg) use (
+				&$state,
+				&$count,
+				&
+				$progressBar,
+				$output
+			) {
 				if ($step === 'warn') {
 					$output->writeln("\n<error>$arg</error>\n");
 				}
@@ -96,7 +105,7 @@ class MoveUser extends Base {
 						$progressBar = new ProgressBar($output, $count);
 						$progressBar->start();
 					}
-					$progressBar->advance();
+					$progressBar->advance($arg);
 				} elseif ($step === 'config') {
 					// if the user had no files to copy, the progress bar will never be setup
 					if ($progressBar) {
@@ -112,7 +121,7 @@ class MoveUser extends Base {
 						$progressBar = new ProgressBar($output, $count);
 						$progressBar->start();
 					}
-					$progressBar->advance();
+					$progressBar->advance($arg);
 				} elseif ($step === 'done') {
 					// if the user had no files to delete, the progress bar will never be setup
 					if ($progressBar) {

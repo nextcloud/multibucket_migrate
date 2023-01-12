@@ -25,6 +25,7 @@ namespace OCA\MultiBucketMigrate;
 
 use Aws\S3\Exception\S3Exception;
 use Aws\S3\S3Client;
+use GuzzleHttp\Promise\Utils;
 use OCP\Files\FileInfo;
 use OC\Files\Mount\ObjectHomeMountProvider;
 use OC\Files\ObjectStore\ObjectStoreStorage;
@@ -111,7 +112,7 @@ class Migrator {
 		}
 	}
 
-	public function moveUser(IUser $user, string $targetBucket, callable $progress) {
+	public function moveUser(IUser $user, string $targetBucket, int $parallel, callable $progress) {
 		$currentBucket = $this->getCurrentBucket($user);
 		if ($currentBucket === $targetBucket) {
 			throw new \Exception("User " . $user->getUID() . " already used bucket " . $targetBucket);
@@ -136,16 +137,35 @@ class Migrator {
 		$fileIds = $this->getFileIds($homeCache->getNumericStorageId());
 		$progress('count', count($fileIds));
 
-		foreach ($fileIds as $fileId) {
-			$progress('copy', $fileId);
-			$key = 'urn:oid:' . $fileId;
-			try {
-				$s3->copy($currentBucket, $key, $targetBucket, $key);
-			} catch (S3Exception $e) {
-				if ($e->getStatusCode() === 404) {
-					$progress('warn', "Object with key $key not found in source bucket, skipping");
-				} else {
-					throw $e;
+		if ($parallel > 1) {
+			$fileChunks = array_chunk($fileIds, $parallel);
+			foreach ($fileChunks as $chunk) {
+				$progress('copy', count($chunk));
+				$promises = array_map(function ($fileId) use ($progress, $s3, $currentBucket, $targetBucket) {
+					$key = 'urn:oid:' . $fileId;
+					$promise = $s3->copyAsync($currentBucket, $key, $targetBucket, $key);
+					return $promise->then(null, function ($e) use ($progress, $key) {
+						if ($e->getStatusCode() === 404) {
+							$progress('warn', "Object with key $key not found in source bucket, skipping");
+						} else {
+							throw $e;
+						}
+					});
+				}, $chunk);
+				Utils::all($promises)->wait();
+			}
+		} else {
+			foreach ($fileIds as $fileId) {
+				$progress('copy', 1);
+				$key = 'urn:oid:' . $fileId;
+				try {
+					$s3->copy($currentBucket, $key, $targetBucket, $key);
+				} catch (S3Exception $e) {
+					if ($e->getStatusCode() === 404) {
+						$progress('warn', "Object with key $key not found in source bucket, skipping");
+					} else {
+						throw $e;
+					}
 				}
 			}
 		}
@@ -154,12 +174,17 @@ class Migrator {
 
 		$this->config->setUserValue($user->getUID(), "homeobjectstore", "bucket", $targetBucket);
 
-		foreach ($fileIds as $fileId) {
-			$progress('delete', $fileId);
-			$key = 'urn:oid:' . $fileId;
-			$s3->deleteObject([
+		$fileChunks = array_chunk($fileIds, 500);
+		foreach ($fileChunks as $chunk) {
+			$progress('delete', count($chunk));
+			$objects = array_map(function($fileId) {
+				return ['Key' => 'urn:oid:' . $fileId];
+			}, $chunk);
+			$s3->deleteObjects([
 				'Bucket' => $currentBucket,
-				'Key' => $key,
+				'Delete' => [
+					'Objects' => $objects,
+				],
 			]);
 		}
 
