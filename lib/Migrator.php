@@ -185,7 +185,7 @@ class Migrator {
 
 		$progress('config', 0);
 
-		$this->config->setUserValue($user->getUID(), "homeobjectstore", "bucket", $targetBucket);
+		$this->setUserBucket($user, $targetBucket);
 
 		$fileChunks = array_chunk($fileIds, 500);
 		foreach ($fileChunks as $chunk) {
@@ -202,6 +202,10 @@ class Migrator {
 		}
 
 		$progress('done', 0);
+	}
+
+	public function setUserBucket(IUser $user, string $bucket) {
+		$this->config->setUserValue($user->getUID(), "homeobjectstore", "bucket", $bucket);
 	}
 
 	private function getFileIds(int $storageId) {

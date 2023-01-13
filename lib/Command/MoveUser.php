@@ -51,7 +51,8 @@ class MoveUser extends Base {
 			->setDescription('Move a user to a different backup')
 			->addArgument("user_id", InputArgument::REQUIRED, "Id of the user to migrate")
 			->addArgument("target_bucket", InputArgument::REQUIRED, "Bucket to migrate the user to")
-			->addOption("parallel", null, InputOption::VALUE_REQUIRED, "Number of S3 copy commands to run in parallel", 1);
+			->addOption("parallel", null, InputOption::VALUE_REQUIRED, "Number of S3 copy commands to run in parallel", 1)
+			->addOption("restore-on-failure", null, InputOption::VALUE_NONE, "Restore and re-activate the user on errors");
 		parent::configure();
 	}
 
@@ -63,6 +64,7 @@ class MoveUser extends Base {
 
 		$userId = $input->getArgument("user_id");
 		$parallel = (int) $input->getOption("parallel");
+		$restoreOnFailure = $input->getOption("restore-on-failure");
 		$user = $this->userManager->get($userId);
 		if (!$user) {
 			$output->writeln("<error>Uknown user $userId</error>");
@@ -70,7 +72,8 @@ class MoveUser extends Base {
 		}
 		$targetBucket = $input->getArgument("target_bucket");
 
-		if ($this->migrator->getCurrentBucket($user) === $targetBucket) {
+		$sourceBucket = $this->migrator->getCurrentBucket($user);
+		if ($sourceBucket === $targetBucket) {
 			$output->writeln("<error>User $userId is already using bucket $targetBucket</error>");
 			return 1;
 		}
@@ -132,7 +135,13 @@ class MoveUser extends Base {
 			$output->writeln("\n<info>Re-enabling user</info>");
 			$user->setEnabled(true);
 		} catch (\Exception $e) {
-			$output->writeln("<error>Error while migrating, user has been left disabled</error>");
+			if ($restoreOnFailure) {
+				$output->writeln("<error>Error while migrating, restoring user</error>");
+				$this->migrator->setUserBucket($user, $sourceBucket);
+				$user->setEnabled(true);
+			} else {
+				$output->writeln("<error>Error while migrating, user has been left disabled</error>");
+			}
 			throw $e;
 		}
 
