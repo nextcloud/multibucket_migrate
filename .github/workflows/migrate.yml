@@ -98,3 +98,23 @@ jobs:
 
           FILE=$(curl -s -u test:test http://localhost:8080/remote.php/dav/files/test/foo.txt)
           [[ $FILE == "foobar" ]]
+      - name: Migrate parallel
+        run: |
+          FILE=$(curl -s -u test:test http://localhost:8080/remote.php/dav/files/test/foo.txt)
+          [[ $FILE == "foobar" ]]
+
+          ./occ multibucket_migrate:list test
+
+          BUCKET=$(./occ user:setting test homeobjectstore bucket | tr -d '[:space:]')
+          USERS=$(./occ multibucket_migrate:by-bucket $BUCKET | tr -d '[:space:]')
+          [[ $USERS == "test" ]]
+
+          ./occ multibucket_migrate:move_user test new-target-bucket --parallel 10
+          USERS=$(./occ multibucket_migrate:by-bucket new-target-bucket | tr -d '[:space:]')
+          [[ $USERS == "test" ]]
+
+          BUCKET=$(./occ user:setting test homeobjectstore bucket | tr -d '[:space:]')
+          [[ $BUCKET == "new-target-bucket" ]]
+
+          FILE=$(curl -s -u test:test http://localhost:8080/remote.php/dav/files/test/foo.txt)
+          [[ $FILE == "foobar" ]]
