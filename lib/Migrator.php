@@ -25,7 +25,8 @@ namespace OCA\MultiBucketMigrate;
 
 use Aws\S3\Exception\S3Exception;
 use Aws\S3\S3Client;
-use GuzzleHttp\Promise\Utils;
+use GuzzleHttp\Promise\EachPromise;
+use GuzzleHttp\Promise\Promise;
 use OCP\Files\FileInfo;
 use OC\Files\Mount\ObjectHomeMountProvider;
 use OC\Files\ObjectStore\ObjectStoreStorage;
@@ -165,7 +166,7 @@ class Migrator {
 						}
 					});
 				}, $chunk);
-				Utils::all($promises)->wait();
+				$this->all($promises)->wait();
 			}
 		} else {
 			foreach ($fileIds as $fileId) {
@@ -222,5 +223,14 @@ class Migrator {
 		return array_map(function ($id) {
 			return (int)$id;
 		}, $files);
+	}
+
+	private function all(array $promises): Promise {
+		return (new EachPromise($promises, [
+			'fulfilled' => null,
+			'rejected' => function ($reason, $idx, Promise $aggregate) {
+				$aggregate->reject($reason);
+			},
+		]))->promise();
 	}
 }
