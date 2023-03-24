@@ -76,10 +76,13 @@ class Migrator {
 	}
 
 	public function getUsersForBucket(string $bucket): array {
-		$users = $this->config->getUsersForUserValue("homeobjectstore", "bucket", $bucket);
-		$normalizedUsers = array_map(function (string $user) {
-			return $this->userManager->get($user)->getUID();
-		}, $users);
+		$userIds = $this->config->getUsersForUserValue("homeobjectstore", "bucket", $bucket);
+		$users = array_map(function (string $user) {
+			return $this->userManager->get($user);
+		}, $userIds);
+		$normalizedUsers = array_map(function (IUser $user) {
+			return $user->getUID();
+		}, array_filter($users));
 		return array_unique($normalizedUsers);
 	}
 
