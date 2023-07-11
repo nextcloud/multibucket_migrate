@@ -27,6 +27,7 @@ use Aws\S3\Exception\S3Exception;
 use Aws\S3\S3Client;
 use GuzzleHttp\Promise\EachPromise;
 use GuzzleHttp\Promise\Promise;
+use OCP\DB\Exception;
 use OCP\Files\FileInfo;
 use OC\Files\Mount\ObjectHomeMountProvider;
 use OC\Files\ObjectStore\ObjectStoreStorage;
@@ -189,7 +190,13 @@ class Migrator {
 
 		$progress('config', 0);
 
-		$this->setUserBucket($user, $targetBucket);
+		try {
+			$this->setUserBucket($user, $targetBucket);
+		} catch (Exception $e) {
+			// since the object copies can take a long time, the database might have gone away
+			$this->connection->connect();
+			$this->setUserBucket($user, $targetBucket);
+		}
 
 		$fileChunks = array_chunk($fileIds, 500);
 		foreach ($fileChunks as $chunk) {
