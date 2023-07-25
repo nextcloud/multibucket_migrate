@@ -105,6 +105,16 @@ class Migrator {
 		}, $fileIds);
 	}
 
+	public function countObjects(IUser $user): int {
+		$storageFactory = new StorageFactory();
+		$homeMount = $this->mountProvider->getHomeMountForUser($user, $storageFactory);
+		if ($homeMount === null) {
+			throw new \Exception("Nextcloud is not using an object store as primary storage");
+		}
+		$homeCache = $homeMount->getStorage()->getCache();
+		return $this->countFiles($homeCache->getNumericStorageId());
+	}
+
 	private function getObjectStorage(ObjectStoreStorage $storage): IObjectStore {
 		if (method_exists($storage, 'getObjectStore')) {
 			return $storage->getObjectStore();
@@ -233,6 +243,18 @@ class Migrator {
 		return array_map(function ($id) {
 			return (int)$id;
 		}, $files);
+	}
+
+	private function countFiles(int $storageId): int {
+		$folderMimetype = $this->mimeTypeLoader->getId(FileInfo::MIMETYPE_FOLDER);
+		$query = $this->connection->getQueryBuilder();
+		$query->select($query->func()->count('fileid'))
+			->from('filecache')
+			->where($query->expr()->eq('storage', $query->createNamedParameter($storageId, IQueryBuilder::PARAM_INT)))
+			->andWhere($query->expr()->neq('mimetype', $query->createNamedParameter($folderMimetype, IQueryBuilder::PARAM_INT)));
+
+		$result = $query->execute();
+		return $result->fetchColumn();
 	}
 
 	private function all(array $promises): Promise {

@@ -28,6 +28,7 @@ use OCA\MultiBucketMigrate\Migrator;
 use OCP\IUserManager;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class ListObjects extends Base {
@@ -47,20 +48,26 @@ class ListObjects extends Base {
 		$this
 			->setName('multibucket_migrate:list')
 			->setDescription('List all objects owned by a user')
-			->addArgument("user_id", InputArgument::REQUIRED, "Id of the user to list objects for");
+			->addArgument("user_id", InputArgument::REQUIRED, "Id of the user to list objects for")
+			->addOption("count", "c", InputOption::VALUE_NONE, "Only return the number of objects instead of listing them all");
 		parent::configure();
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$userId = $input->getArgument("user_id");
+		$count = $input->getOption("count");
 		$user = $this->userManager->get($userId);
 		if (!$user) {
 			$output->writeln("<error>Uknown user $userId</error>");
 			return 1;
 		}
 
-		foreach ($this->migrator->listObjects($user) as $urn) {
-			$output->writeln($urn);
+		if ($count) {
+			$output->writeln($this->migrator->countObjects($user));
+		} else {
+			foreach ($this->migrator->listObjects($user) as $urn) {
+				$output->writeln($urn);
+			}
 		}
 
 		return 0;
