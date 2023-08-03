@@ -146,7 +146,7 @@ class MoveUser extends Base {
 				$output->writeln("<info>Enabling user</info>");
 				$user->setEnabled(true);
 				return 1;
-			} else if ($restoreOnFailure) {
+			} elseif ($restoreOnFailure) {
 				$output->writeln("<error>Error while migrating, restoring user</error>");
 				$this->migrator->setUserBucket($user, $sourceBucket);
 				$user->setEnabled(true);
