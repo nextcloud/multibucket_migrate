@@ -140,7 +140,7 @@ class Migrator {
 		}
 	}
 
-	public function moveUser(IUser $user, string $targetBucket, int $parallel, callable $progress) {
+	public function moveUser(IUser $user, string $targetBucket, int $parallel, int $maxAllowedItems, callable $progress) {
 		$currentBucket = $this->getCurrentBucket($user);
 		if ($currentBucket === $targetBucket) {
 			throw new \Exception("User " . $user->getUID() . " already used bucket " . $targetBucket);
@@ -163,6 +163,12 @@ class Migrator {
 		}
 
 		$fileIds = $this->getFileIds($homeCache->getNumericStorageId());
+
+		if ($maxAllowedItems >= 0 && count($fileIds) > $maxAllowedItems) {
+			$progress('max_files_reached', 0);
+			throw new \Exception("User " . $user->getUID() . " has more files than the allowed to be migrated.");
+		}
+
 		$progress('count', count($fileIds));
 
 		if ($parallel > 1) {
