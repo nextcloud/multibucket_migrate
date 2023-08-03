@@ -254,7 +254,7 @@ class Migrator {
 			->andWhere($query->expr()->neq('mimetype', $query->createNamedParameter($folderMimetype, IQueryBuilder::PARAM_INT)));
 
 		$result = $query->execute();
-		return $result->fetchColumn();
+		return (int) $result->fetchColumn();
 	}
 
 	private function all(array $promises): Promise {
