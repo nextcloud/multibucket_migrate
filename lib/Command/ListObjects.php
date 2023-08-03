@@ -63,7 +63,7 @@ class ListObjects extends Base {
 		}
 
 		if ($count) {
-			$output->writeln($this->migrator->countObjects($user));
+			$output->writeln((string)$this->migrator->countObjects($user));
 		} else {
 			foreach ($this->migrator->listObjects($user) as $urn) {
 				$output->writeln($urn);
